@@ -1,0 +1,3 @@
+[submodule "proto-device-utils"]
+	path = proto-device-utils
+	url = https://github.com/BRUHItsABunny/proto-device-utils
