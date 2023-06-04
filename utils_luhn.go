@@ -1,4 +1,4 @@
-package go_device_utils
+package device_utils
 
 // Props to: https://github.com/theplant/luhn
 // TODO: Alter to allow for MEID as well, which can be HEXADECIMAL

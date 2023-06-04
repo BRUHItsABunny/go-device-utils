@@ -2,7 +2,7 @@
 // protoc-gen-go-vtproto version: v0.2.1-0.20220224152539-d8520340f573
 // source: proto-device-utils/device_utils.proto
 
-package go_device_utils
+package device_utils
 
 import (
 	binary "encoding/binary"

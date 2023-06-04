@@ -1,4 +1,4 @@
-package go_device_utils
+package device_utils
 
 import (
 	"fmt"
