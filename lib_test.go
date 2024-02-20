@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
-	"strconv"
 	"testing"
 	"time"
 )
@@ -49,11 +48,6 @@ func TestMACGeneration(t *testing.T) {
 	}
 	fmt.Println(mac.Generate("", true, true))
 	fmt.Println(mac.PrettyFormat(":"))
-}
-
-func MustInt(input string) int {
-	res, _ := strconv.Atoi(input)
-	return res
 }
 
 func TestParseJA3(t *testing.T) {

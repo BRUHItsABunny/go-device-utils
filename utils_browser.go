@@ -32,9 +32,9 @@ func ParseTLSFingerprint(fingerprint string) (*Browser_TLSFingerprint, error) {
 			}
 			break
 		case 2:
-			result.Extensions = make([]Browser_TLSFingerprint_Extensions, len(elements))
+			result.Extensions = make([]Browser_TLSFingerprint_Extension, len(elements))
 			for elementI, element := range elements {
-				result.Extensions[elementI] = Browser_TLSFingerprint_Extensions(mustInt(element))
+				result.Extensions[elementI] = Browser_TLSFingerprint_Extension(mustInt(element))
 			}
 			break
 		case 3:
@@ -60,7 +60,7 @@ func (fp *Browser_TLSFingerprint) FormatTLSFingerprint(strict ...bool) string {
 		fmtStrict = strict[0]
 	}
 
-	extensions := make([]Browser_TLSFingerprint_Extensions, len(fp.Extensions))
+	extensions := make([]Browser_TLSFingerprint_Extension, len(fp.Extensions))
 	copy(extensions, fp.Extensions)
 	if !fmtStrict {
 		rand.Shuffle(len(extensions), func(i, j int) {
