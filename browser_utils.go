@@ -1,7 +1,11 @@
 package device_utils
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -38,7 +42,7 @@ func GenerateBrandHeader(brand string, majorVersion int, useLegacy ...bool) stri
 		grease = fmt.Sprintf("\"Not%sA%sBrand\";v=\"%s\"",
 			greasyChars[majorVersion%len(greasyChars)],
 			greasyChars[(majorVersion+1)%len(greasyChars)],
-			greasedVersions[majorVersion%len(brandPermutations)],
+			greasedVersions[majorVersion%len(greasedVersions)],
 		)
 	} else {
 		grease = fmt.Sprintf("\"%sNot%sA%sBrand\";v=\"%s\"",
@@ -61,4 +65,83 @@ func GenerateBrandHeader(brand string, majorVersion int, useLegacy ...bool) stri
 	}
 
 	return strings.Join(result, ", ")
+}
+
+const (
+	// src: https://versionhistory.googleapis.com/v1/chrome/platforms/
+	PlatformWindows   = "win"
+	PlatformWindows64 = "win64"
+	PlatformIOS       = "ios"
+	PlatformAndroid   = "android"
+	PlatformMac       = "mac"
+	PlatformMacARM64  = "mac_arm64"
+	PlatformLinux     = "linux"
+
+	// src: https://versionhistory.googleapis.com/v1/chrome/platforms/win/channels
+	ChannelExtended = "extended"
+	ChannelStable   = "stable"
+	ChannelBeta     = "beta"
+	ChannelDev      = "dev"
+	ChannelCanary   = "canary"
+)
+
+type ChromiumVersionResponse struct {
+	Versions      []*ChromiumVersion `json:"versions"`
+	NextPageToken string             `json:"nextPageToken"`
+}
+
+type ChromiumVersion struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+func (v *ChromiumVersion) GetMajorVersion() int {
+	majorStr := strings.Split(v.Version, ".")[0]
+	majorInt, err := strconv.Atoi(majorStr)
+	if err != nil {
+		return 0
+	}
+	return majorInt
+}
+
+func (v *ChromiumVersion) GetUAVersion() string {
+	majorStr := strings.Split(v.Version, ".")[0]
+	return fmt.Sprintf("%s.0.0.0", majorStr)
+}
+
+func GetLatestChromium(index int, args ...string) (*ChromiumVersion, error) {
+	platform := PlatformWindows
+	if len(args) >= 1 {
+		platform = args[0]
+	}
+
+	channelId := ChannelStable
+	if len(args) >= 2 {
+		channelId = args[1]
+	}
+
+	reqURL := fmt.Sprintf("https://versionhistory.googleapis.com/v1/chrome/platforms/%s/channels/%s/versions", platform, channelId)
+	resp, err := http.Get(reqURL)
+	if err != nil {
+		return nil, fmt.Errorf("http.Get: %w", err)
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("io.ReadAll: %w", err)
+	}
+
+	respParsed := &ChromiumVersionResponse{}
+	err = json.Unmarshal(respBody, respParsed)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+	}
+
+	unsigned := index
+	if index < 0 {
+		unsigned = index * -1
+		return respParsed.Versions[len(respParsed.Versions)-(unsigned%len(respParsed.Versions))], nil
+	} else {
+		return respParsed.Versions[unsigned%len(respParsed.Versions)], nil
+	}
 }
