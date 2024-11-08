@@ -171,6 +171,7 @@ func MustChromiumHeaders(brand string, defaultMajorVersion int, withFullVersions
 		"user-agent":       {fmt.Sprintf("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36", latest.GetUAVersion())},
 		"sec-ch-ua":        {GenerateBrandHeader(brand, latest.GetMajorVersion())},
 		"sec-ch-ua-mobile": {"?0"},
+		"priority":         {"u=1, i"},
 	}
 
 	if withFullVersions {
