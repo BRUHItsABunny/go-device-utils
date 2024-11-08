@@ -35,6 +35,11 @@ func GenerateBrandHeader(brand string, majorVersion int, useLegacy ...bool) stri
 		legacyAlg = useLegacy[0]
 	}
 
+	postFix := ""
+	if len(useLegacy) > 1 && useLegacy[1] {
+		postFix = ".0.0.0"
+	}
+
 	order := brandPermutations[majorVersion%len(brandPermutations)]
 
 	// https://source.chromium.org/chromium/chromium/src/+/main:components/embedder_support/user_agent_utils.cc;l=392;drc=2385479e028cfd50420ff8a4406da113d65622c6;bpv=1;bpt=1
@@ -56,12 +61,12 @@ func GenerateBrandHeader(brand string, majorVersion int, useLegacy ...bool) stri
 	// https://source.chromium.org/chromium/chromium/src/+/main:components/embedder_support/user_agent_utils.cc;l=315;drc=2385479e028cfd50420ff8a4406da113d65622c6
 	if len(brand) > 0 {
 		result[order[0]] = grease
-		result[order[1]] = fmt.Sprintf("\"Chromium\";v=\"%d\"", majorVersion)
-		result[order[2]] = fmt.Sprintf("\"%s\";v=\"%d\"", brand, majorVersion)
+		result[order[1]] = fmt.Sprintf("\"Chromium\";v=\"%d%s\"", majorVersion, postFix)
+		result[order[2]] = fmt.Sprintf("\"%s\";v=\"%d%s\"", brand, majorVersion, postFix)
 	} else {
 		result = make([]string, 2)
 		result[majorVersion%2] = grease
-		result[(majorVersion+1)%2] = fmt.Sprintf("\"Chromium\";v=\"%d\"", majorVersion)
+		result[(majorVersion+1)%2] = fmt.Sprintf("\"Chromium\";v=\"%d%s\"", majorVersion, postFix)
 	}
 
 	return strings.Join(result, ", ")
@@ -144,4 +149,37 @@ func GetLatestChromium(index int, args ...string) (*ChromiumVersion, error) {
 	} else {
 		return respParsed.Versions[unsigned%len(respParsed.Versions)], nil
 	}
+}
+
+func MustChromiumHeaders(brand string, defaultMajorVersion int, withFullVersions bool) http.Header {
+	if brand == "" {
+		brand = "Google Chrome"
+	}
+	if defaultMajorVersion < 1 {
+		defaultMajorVersion = 131
+	}
+
+	latest, err := GetLatestChromium(0)
+	if err != nil {
+		latest = &ChromiumVersion{
+			Name:    fmt.Sprintf("chrome/platforms/win/channels/stable/versions/%d.0.0.0", defaultMajorVersion),
+			Version: fmt.Sprintf("%d.0.0.0", defaultMajorVersion),
+		}
+	}
+
+	result := http.Header{
+		"user-agent":       {fmt.Sprintf("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36", latest.GetUAVersion())},
+		"sec-ch-ua":        {GenerateBrandHeader(brand, latest.GetMajorVersion())},
+		"sec-ch-ua-mobile": {"?0"},
+	}
+
+	if withFullVersions {
+		result["sec-ch-ua-platform"] = []string{"\"Windows\""}
+		result["sec-ch-ua-arch"] = []string{"\"x86\""}
+		result["sec-ch-ua-platform-version"] = []string{"\"19.0.0\""}
+		result["sec-ch-ua-model"] = []string{""}
+		result["sec-ch-ua-full-version-list"] = []string{GenerateBrandHeader(brand, latest.GetMajorVersion())}
+	}
+
+	return result
 }
